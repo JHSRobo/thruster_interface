@@ -18,7 +18,7 @@ class Thrusters(Node):
             self.pca.channels_set_duty_all(0.15)
             time.sleep(1)
 
-        self.subscription = self.create_subscription(Twist, 'cmd_vel', self.listen, 10)
+        self.subscription = self.create_subscription(Twist, 'cmd_vel', self.thruster_callback, 10)
         self.subscription
         self.logger = self.get_logger()
 
