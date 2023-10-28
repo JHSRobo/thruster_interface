@@ -18,11 +18,11 @@ class Thrusters(Node):
             self.pca.channels_set_duty_all(0.15)
             time.sleep(1)
 
-        self.subscription_ = self.create_subscription(Twist, 'cmd_vel', self.listen, 10)
-        self.subscription_
+        self.subscription = self.create_subscription(Twist, 'cmd_vel', self.listen, 10)
+        self.subscription
         self.logger = self.get_logger()
 
-    def listen(self, msg):
+    def thruster_callback(self, msg):
 
             linearX = msg.linear.x
             linearY = msg.linear.y
