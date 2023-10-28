@@ -7,6 +7,10 @@
   <maintainer email="randallj24@student.jhs.net">jhsrobo</maintainer>
   <license>MIT</license>
 
+  <depend>rclpy</depend>
+  <depend>std_msgs</depend>
+  <depend>geometry_msgs</depend>
+
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
   <test_depend>ament_pep257</test_depend>
