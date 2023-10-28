@@ -17,14 +17,14 @@ class Thrusters(Node):
 
         # Made so if the pca is disconnected the program does not error out
         try: self.pca = pca9685.PCA9685(bus=1)
-        except: self.logger.warn("Cannot connect to PCA9685. Ignor this if thrusters are unplugged")
+        except: self.logger.warn("Cannot connect to PCA9685. Ignore this if thrusters are unplugged")
         else:
             # Sets the frequency of the signal to 400hz
             self.pca.set_pwm_frequency(400)
             self.pca.output_enable()
 
             # Enables all thrusters
-            self.pca.channels_set_duty_all(0.0375)
+            self.pca.channels_set_duty_all(0.6)
             time.sleep(1)
 
         # Creates the subscriber and logger
@@ -51,7 +51,7 @@ class Thrusters(Node):
             
             # Goes through each thruster and changes the list values into a duty_cycle
             for i in range(0, 6):
-                duty_cycle = 0.0375 - msglist[i] / 100
+                duty_cycle = 0.6 - msglist[i] / 3.125
 
                 self.pca.channel_set_duty(i, duty_cycle)
        
