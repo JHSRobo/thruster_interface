@@ -6,6 +6,7 @@ import time
 from core_lib import pca9685
 import RPi.GPIO as GPIO
 
+# Create the main class for entry
 class Thrusters(Node):
     def __init__(self):
         super().__init__('thrusters')
@@ -13,40 +14,48 @@ class Thrusters(Node):
         # Supress GPIO Output
         GPIO.setwarnings(False)
 
+
+        # Made so if the pca is disconnected the program does not error out
         try: self.pca = pca9685.PCA9685(bus=1)
         except: self.logger.warn("Cannot connect to PCA9685. Ignor this if thrusters are unplugged")
         else:
-            self.pca.set_pwm_frequency(100)
+            # Sets the frequency of the signal to 400hz
+            self.pca.set_pwm_frequency(400)
             self.pca.output_enable()
 
-            self.pca.channels_set_duty_all(0.15)
+            # Enables all thrusters
+            self.pca.channels_set_duty_all(0.0375)
             time.sleep(1)
 
+        # Creates the subscriber and logger
         self.subscription = self.create_subscription(Twist, 'cmd_vel', self.thruster_callback, 10)
         self.subscription
         self.logger = self.get_logger()
 
     def thruster_callback(self, msg):
-
+            
+            # Converts the Twist vector into interpreted
             linearX = msg.linear.x
             linearY = msg.linear.y
             linearZ = msg.linear.z
             angularX = msg.angular.x
             angularZ = msg.angular.z
 
-            msglist = {1 : linearX - linearY - angularZ, 
-                       2 : linearX + linearY + angularZ,
-                       3 : -linearX - linearY + angularZ,
-                       4 : -linearX + linearY - angularZ,
-                       5 : -linearZ - angularX,
-                       6 : -linearZ + angularX}
+            # Creates a list of those vector values to control each thruster separately
+            msglist = [linearX - linearY - angularZ, 
+                       linearX + linearY + angularZ,
+                       -linearX - linearY + angularZ,
+                       -linearX + linearY - angularZ,
+                       -linearZ - angularX,
+                       -linearZ + angularX]
             
-            for i in range(1, 7):
-                duty_cycle = 0.15 - msglist[i] / 25
+            # Goes through each thruster and changes the list values into a duty_cycle
+            for i in range(0, 6):
+                duty_cycle = 0.0375 - msglist[i] / 100
 
-                self.pca.channel_set_duty(i - 1, duty_cycle)
+                self.pca.channel_set_duty(i, duty_cycle)
        
-
+# Runs the subscirber
 def main(args=None):
     rclpy.init(args=args)
 
