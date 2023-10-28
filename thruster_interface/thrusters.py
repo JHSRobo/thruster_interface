@@ -19,12 +19,13 @@ class Thrusters(Node):
         try: self.pca = pca9685.PCA9685(bus=1)
         except: self.logger.warn("Cannot connect to PCA9685. Ignore this if thrusters are unplugged")
         else:
+            
             # Sets the frequency of the signal to 400hz
-            self.pca.set_pwm_frequency(400)
+            self.pca.set_pwm_frequency(100)
             self.pca.output_enable()
 
             # Enables all thrusters
-            self.pca.channels_set_duty_all(0.6)
+            self.pca.channels_set_duty_all(0.15)
             time.sleep(1)
 
         # Creates the subscriber and logger
@@ -34,14 +35,13 @@ class Thrusters(Node):
 
     def thruster_callback(self, msg):
             
-            # Converts the Twist vector into interpreted
             linearX = msg.linear.x
             linearY = msg.linear.y
             linearZ = msg.linear.z
             angularX = msg.angular.x
             angularZ = msg.angular.z
 
-            # Creates a list of those vector values to control each thruster separately
+            # Decompose the vectors into thruster values
             msglist = [linearX - linearY - angularZ, 
                        linearX + linearY + angularZ,
                        -linearX - linearY + angularZ,
@@ -51,11 +51,12 @@ class Thrusters(Node):
             
             # Goes through each thruster and changes the list values into a duty_cycle
             for i in range(0, 6):
-                duty_cycle = 0.6 - msglist[i] / 3.125
+                duty_cycle = 0.15 - msglist[i] / 25
 
+                # Writes the duty cycles
                 self.pca.channel_set_duty(i, duty_cycle)
        
-# Runs the subscirber
+# Runs the node
 def main(args=None):
     rclpy.init(args=args)
 
