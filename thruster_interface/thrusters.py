@@ -27,19 +27,19 @@ class Thrusters(Node):
             linearX = msg.linear.x
             linearY = msg.linear.y
             linearZ = msg.linear.z
+            angularX = msg.angular.x
             angularZ = msg.angular.z
 
-            msglist = [
-                 t1 = linearX + linearY + angularZ,
-                 t2 = -linearX + linearY - angularZ,
-                 t3 = linearX - linearY + angularZ,
-                 t4 = -linearX - linearY + angularZ,
-                 t5 = 
-            ]
-
+            msglist = {1 : linearX - linearY - angularZ, 
+                       2 : linearX + linearY + angularZ,
+                       3 : -linearX - linearY + angularZ,
+                       4 : -linearX + linearY - angularZ,
+                       5 : -linearZ - angularX,
+                       6 : -linearZ + angularX}
             
-        
-        
+            for i in range(1, 7):
+                 self.pca.channel_set_duty(i, 0.15 - msglist[i] / 25)
+       
 
 def main(args=None):
     rclpy.init(args=args)
