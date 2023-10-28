@@ -4,15 +4,19 @@ from rclpy.node import Node
 from geometry_msgs.msg import Twist
 import time
 from core_lib import pca9685
+import RPi.GPIO as GPIO
 
 class Thrusters(Node):
     def __init__(self):
         super().__init__('thrusters')
 
+        # Supress GPIO Output
+        GPIO.setwarnings(False)
+
         try: self.pca = pca9685.PCA9685(bus=1)
         except: self.logger.warn("Cannot connect to PCA9685. Ignor this if thrusters are unplugged")
         else:
-            self.pca.set_pwm_fequency(100)
+            self.pca.set_pwm_frequency(100)
             self.pca.output_enable()
 
             self.pca.channels_set_duty_all(0.15)
@@ -38,7 +42,9 @@ class Thrusters(Node):
                        6 : -linearZ + angularX}
             
             for i in range(1, 7):
-                 self.pca.channel_set_duty(i, 0.15 - msglist[i] / 25)
+                duty_cycle = 0.15 - msglist[i] / 25
+
+                self.pca.channel_set_duty(i - 1, duty_cycle)
        
 
 def main(args=None):
