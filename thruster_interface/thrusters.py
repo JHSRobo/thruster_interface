@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
+
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
 import time
 from core_lib import pca9685
-import RPi.GPIO as GPIO
+import RPi.GPIO as GPIO # Only necessary if running on RPi.
 
 # Create the main class for entry
 class Thrusters(Node):
@@ -14,25 +15,28 @@ class Thrusters(Node):
         # Supress GPIO Output
         GPIO.setwarnings(False)
 
+        self.logger = self.get_logger()
 
-        # Made so if the pca is disconnected the program does not error out
+        # Attempt to connect to PCA9685
         try: self.pca = pca9685.PCA9685(bus=1)
-        except: self.logger.warn("Cannot connect to PCA9685. Ignore this if thrusters are unplugged")
+        except IOError as e: self.logger.warn("Cannot connect to PCA9685. Ignore this if PWM converter is unplugged")
         else:
             
-            # Sets the frequency of the signal to 400hz
+            # Sets the frequency of the signal to 100hz
             self.pca.set_pwm_frequency(100)
             self.pca.output_enable()
 
             # Enables all thrusters
             self.pca.channels_set_duty_all(0.15)
-            time.sleep(1)
+            time.sleep(1) # Sleep is necessary to give thrusters time to initialize
 
         # Creates the subscriber and logger
         self.subscription = self.create_subscription(Twist, 'cmd_vel', self.thruster_callback, 10)
-        self.subscription
         self.logger = self.get_logger()
 
+    
+    # Runs whenever /cmd_vel topic recieves a new twist msg
+    # Twist msg reference: http://docs.ros.org/en/noetic/api/geometry_msgs/html/msg/Twist.html
     def thruster_callback(self, msg):
             
             linearX = msg.linear.x
