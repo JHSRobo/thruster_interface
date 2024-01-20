@@ -8,7 +8,7 @@
   <license>MIT</license>
 
   <depend>rclpy</depend>
-  <depend>smbus2</depend>
+  <depend>python3-smbus2-pip</depend>
   <depend>std_msgs</depend>
   <depend>geometry_msgs</depend>
   <depend>core</depend>
