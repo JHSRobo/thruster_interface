@@ -32,6 +32,7 @@ class Thrusters(Node):
 
         # Creates the subscriber and logger
         self.subscription = self.create_subscription(Twist, 'cmd_vel', self.thruster_callback, 10)
+        self.auto_subscriber = self.create_subscription(Twist, 'autovector', self.auto_callback, 10)
         self.logger = self.get_logger()
 
     
@@ -39,6 +40,27 @@ class Thrusters(Node):
     # Twist msg reference: http://docs.ros.org/en/noetic/api/geometry_msgs/html/msg/Twist.html
     def thruster_callback(self, msg):
             
+            linearX = msg.linear.x
+            linearY = msg.linear.y
+            linearZ = msg.linear.z
+            angularX = msg.angular.x
+            angularZ = msg.angular.z
+
+            # Decompose the vectors into thruster values
+            msglist = [linearX - linearY - angularZ, 
+                       linearX + linearY + angularZ,
+                       -linearX - linearY + angularZ,
+                       -linearX + linearY - angularZ,
+                       -linearZ - angularX,
+                       -linearZ + angularX]
+            
+            # Goes through each thruster and changes the list values into a duty_cycle
+            for i in range(0, 6):
+                duty_cycle = 0.15 - msglist[i] / 25
+
+                # Writes the duty cycles
+                self.pca.channel_set_duty(i, duty_cycle)
+    def auto_callback(self, msg): # same exact callback but for autonomous task
             linearX = msg.linear.x
             linearY = msg.linear.y
             linearZ = msg.linear.z
