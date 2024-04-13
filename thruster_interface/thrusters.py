@@ -46,6 +46,10 @@ class Thrusters(Node):
             angularZ = msg.angular.z
 
             # Decompose the vectors into thruster values
+            # linearX references moving along X-axis, or forward
+            # angularZ referneces rotation around vertical axis, or Z-axis.
+            # For more reference directions, see https://www.canva.com/design/DAFyPqmH8LY/2oMLLaP8HHGi2e07Ms8fug/view
+        
             msglist = [linearX - linearY - angularZ, 
                        linearX + linearY + angularZ,
                        -linearX - linearY + angularZ,
