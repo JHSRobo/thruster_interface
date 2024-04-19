@@ -34,7 +34,11 @@ class Thrusters(Node):
         self.subscription = self.create_subscription(Twist, 'cmd_vel', self.thruster_callback, 10)
         self.logger = self.get_logger()
 
-    
+        # Last thruster values to prevent ESC reset
+        self.last_thrusters = [0.15, 0.15, 0.15, 0.15, 0.15, 0.15]
+
+        # Max delta of thrusters
+        self.max_delta = 0.04
     # Runs whenever /cmd_vel topic recieves a new twist msg
     # Twist msg reference: http://docs.ros.org/en/noetic/api/geometry_msgs/html/msg/Twist.html
     def thruster_callback(self, msg):
@@ -45,6 +49,7 @@ class Thrusters(Node):
             angularX = msg.angular.x
             angularZ = msg.angular.z
 
+            
             # Decompose the vectors into thruster values
             # linearX references moving along X-axis, or forward
             # angularZ referneces rotation around vertical axis, or Z-axis.
@@ -61,6 +66,21 @@ class Thrusters(Node):
             for i in range(0, 6):
                 duty_cycle = 0.15 - msglist[i] / 25
 
+                # Finds the last value of the thruster
+                last_cycle = self.last_thrusters[i]
+                # On switched direction, first value resets to 0.15
+                if duty_cycle < 0.15 < last_cycle or last_cycle < 0.15 < duty_cycle:
+                    duty_cycle = 0.15
+                # Restricts change in the duty cycle to a delta value
+                elif abs(duty_cycle - last_cycle) > self.max_delta:
+                    if duty_cycle > last_cycle:
+                        duty_cycle = last_cycle + self.max_delta
+                    else:
+                        duty_cycle = last_cycle - self.max_delta
+
+                # Remembers this thruster for next input
+                self.last_thrusters[i] = duty_cycle
+                
                 # Writes the duty cycles
                 self.pca.channel_set_duty(i, duty_cycle)
        
