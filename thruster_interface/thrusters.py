@@ -38,7 +38,7 @@ class Thrusters(Node):
         self.last_thrusters = [0.15, 0.15, 0.15, 0.15, 0.15, 0.15]
 
         # Max delta of thrusters
-        self.max_delta = 0.04
+        self.max_delta = 0.004
     # Runs whenever /cmd_vel topic recieves a new twist msg
     # Twist msg reference: http://docs.ros.org/en/noetic/api/geometry_msgs/html/msg/Twist.html
     def thruster_callback(self, msg):
