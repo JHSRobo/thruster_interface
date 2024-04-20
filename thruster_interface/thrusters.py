@@ -62,6 +62,15 @@ class Thrusters(Node):
                        -linearZ - angularX,
                        -linearZ + angularX]
             
+            # function to limit a value between -1 and 1
+            # min(value, 1) takes the returns lesser of the two values. So if value is greater than 1, it returns 1.
+            def limit_value(value):
+                return max(-1, min(value, 1))
+
+            # Use map() to apply the limit_value function to each element of msglist
+            msglist = list(map(limit_value, msglist))
+    
+            
             # Goes through each thruster and changes the list values into a duty_cycle
             for i in range(0, 6):
                 duty_cycle = 0.15 - msglist[i] / 25
