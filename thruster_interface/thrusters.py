@@ -47,7 +47,7 @@ class Thrusters(Node):
             linearY = msg.linear.y
             linearZ = msg.linear.z
             angularX = msg.angular.x
-            angularZ = msg.angular.z
+            angularZ = msg.angular.z / 1.4142136
 
             
             # Decompose the vectors into thruster values
@@ -69,30 +69,20 @@ class Thrusters(Node):
 
             # Use map() to apply the limit_value function to each element of msglist
             msglist = list(map(limit_value, msglist))
-    
-            
-            # Goes through each thruster and changes the list values into a duty_cycle
-            for i in range(0, 6):
-                duty_cycle = 0.15 - msglist[i] / 25
 
-                # Finds the last value of the thruster
-                last_cycle = self.last_thrusters[i]
-                # On switched direction, first value resets to 0.15
-                if duty_cycle < 0.15 < last_cycle or last_cycle < 0.15 < duty_cycle:
-                    duty_cycle = 0.15
-                # Restricts change in the duty cycle to a delta value
-                elif abs(duty_cycle - last_cycle) > self.max_delta:
-                    if duty_cycle > last_cycle:
-                        duty_cycle = last_cycle + self.max_delta
+            dutylist = [ round(0.15 - msglist[i] / 25, 5) for i in range(6) ]
+            for i in range(6):
+                if abs(dutylist[i] - self.last_thrusters[i]) > self.max_delta:
+                    if dutylist[i] > self.last_thrusters[i]:
+                        dutylist[i] = self.last_thrusters[i] + self.max_delta
                     else:
-                        duty_cycle = last_cycle - self.max_delta
+                        dutylist[i] = self.last_thrusters[i]- self.max_delta
 
-                # Remembers this thruster for next input
-                self.last_thrusters[i] = duty_cycle
-                
-                # Writes the duty cycles
-                self.pca.channel_set_duty(i, duty_cycle)
-       
+                self.last_thrusters[i] = dutylist[i]
+                self.pca.channel_set_duty(i, dutylist[i])
+    
+            #self.logger.info(str(dutylist))
+            
 # Runs the node
 def main(args=None):
     rclpy.init(args=args)
