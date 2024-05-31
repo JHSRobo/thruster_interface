@@ -55,13 +55,15 @@ class Thrusters(Node):
             # angularZ referneces rotation around vertical axis, or Z-axis.
             # For more reference directions, see https://www.canva.com/design/DAFyPqmH8LY/2oMLLaP8HHGi2e07Ms8fug/view
         
-            msglist = [linearX - linearY - angularZ, 
-                       linearX + linearY + angularZ,
-                       -linearX - linearY + angularZ,
-                       -linearX + linearY - angularZ,
+            scale_value = 0.5 * (2 ** -0.5)
+
+            msglist = [(linearX - linearY - angularZ) * scale_value, 
+                       (linearX + linearY + angularZ) * scale_value,
+                       (-linearX - linearY + angularZ) * scale_value,
+                       (-linearX + linearY - angularZ) * scale_value,
                        -linearZ - angularX,
                        -linearZ + angularX]
-            
+
             # function to limit a value between -1 and 1
             # min(value, 1) takes the returns lesser of the two values. So if value is greater than 1, it returns 1.
             def limit_value(value):
@@ -81,7 +83,7 @@ class Thrusters(Node):
                 self.last_thrusters[i] = dutylist[i]
                 self.pca.channel_set_duty(i, dutylist[i])
     
-            #self.logger.info(str(dutylist))
+            self.logger.info(str(dutylist))
             
 # Runs the node
 def main(args=None):
