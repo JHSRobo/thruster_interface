@@ -18,13 +18,14 @@ class Thrusters(Node):
         # Supress GPIO Output
         GPIO.setwarnings(False)
 
+        # Get the logger
         self.log = self.get_logger()
 
         # Attempt to connect to PCA9685
         try: self.pca = pca9685.PCA9685(bus=1)
         except IOError as e:
             self.log.warn("Cannot connect to PCA9685. Ignore this if PWM converter is unplugged")
-            #exit()
+            exit()
         else:
             
             # Sets the frequency of the signal to 100hz
@@ -35,10 +36,9 @@ class Thrusters(Node):
             self.pca.channels_set_duty_all(0.15)
             time.sleep(1) # Sleep is necessary to give thrusters time to initialize
 
-        # Creates the subscriber and logger
+        # Creates the subscriber
         self.thruster_sub = self.create_subscription(Twist, 'cmd_vel', self.thruster_callback, 10)
         self.orientation_sub = self.create_subscription(Vector3, 'orientation_sensor', self.orientation_callback, 10)
-        self.log = self.get_logger()
 
         # Define slider parameters
         slider_bounds = FloatingPointRange()
@@ -104,12 +104,10 @@ class Thrusters(Node):
 
     # We provide this function to the pid controller so that it understands that 360 wraps around to 0
     def angle_wrap(self, angle):
-        if angle > 0:
-            if angle > 180:
-                return angle - 360
-        else:
-            if angle < -180:
-                return angle + 360
+        if angle > 180:
+            return angle - 360
+        elif angle < -180:
+            return angle + 360
         return angle
 
     # Takes in actual angle of the ROV and calculates the error relative to setpoint
@@ -123,65 +121,68 @@ class Thrusters(Node):
     # Twist msg reference: http://docs.ros.org/en/noetic/api/geometry_msgs/html/msg/Twist.html
     def thruster_callback(self, msg):
             
-            # Implement separate logic for yaw control
-            if self.yaw_control_enabled:
+        # Implement separate logic for yaw control
+        if self.yaw_control_enabled:
 
-                # This callback runs about 75x / second.
-                # We want top speed to rotate the ROV 360 degrees in 1 second.
+            # This callback runs about 75x / second.
+            # We want top speed to rotate the ROV 360 degrees in 1 second.
 
-                self.yaw_target += (msg.angular.z * 360 / 75)
-                self.yaw_target = self.yaw_target % 360
-                self.yaw_pid.setpoint = 0 #self.yaw_target
-                self.yaw_effort_value = self.yaw_pid(self.error)
-                self.log.info("effort: {} \
-                        target: {} \
-                        error: {}".format(self.yaw_effort_value, self.yaw_target, self.error))
+            self.yaw_target += (msg.angular.z * 360 / 75)
+            self.yaw_target = self.yaw_target % 360
+            self.yaw_pid.setpoint = 0 #self.yaw_target
+            self.yaw_effort_value = self.yaw_pid(self.error)
+            self.log.info("effort: {} \
+                    target: {} \
+                    error: {}".format(self.yaw_effort_value, self.yaw_target, self.error))
 
-                angularZ = self.yaw_effort_value
+            angularZ = self.yaw_effort_value
 
-            
-            linearX = msg.linear.x
-            linearY = msg.linear.y
-            linearZ = msg.linear.z
-            angularX = msg.angular.x
-            angularZ = msg.angular.z / 1.4142136 # Division because thrusters do not have to vector against each other for angular motion
-
-            
-            # Decompose the vectors into thruster values
-            # linearX references moving along X-axis, or forward
-            # angularZ referneces rotation around vertical axis, or Z-axis.
-            # For more reference directions, see https://www.canva.com/design/DAFyPqmH8LY/2oMLLaP8HHGi2e07Ms8fug/view
         
-            scale_value = 0.5 * (2 ** -0.5)
+        linearX = msg.linear.x
+        linearY = msg.linear.y
+        linearZ = msg.linear.z
+        angularX = msg.angular.x
 
-            msglist = [(linearX - linearY - angularZ) * scale_value, 
-                       (linearX + linearY + angularZ) * scale_value,
-                       (-linearX - linearY + angularZ) * scale_value,
-                       (-linearX + linearY - angularZ) * scale_value,
-                       -linearZ - angularX,
-                       -linearZ + angularX]
+        # Use yaw-lock pid value unless pilot is moving on the axis
+        if abs(msg.angular.z) > 8:
+            angularZ = msg.angular.z / sqrt(2) # Division because thrusters do not have to vector against each other for angular motion
 
-            # function to limit a value between -1 and 1
-            # min(value, 1) takes the returns lesser of the two values. So if value is greater than 1, it returns 1.
-            def limit_value(value):
-                return max(-0.95, min(value, 0.95))
-
-            # Use map() to apply the limit_value function to each element of msglist
-            msglist = list(map(limit_value, msglist))
-
-            dutylist = [ round(0.15 - msglist[i] / 25, 5) for i in range(6) ]
-            for i in range(6):
-                if abs(dutylist[i] - self.last_thrusters[i]) > self.max_delta:
-                    if dutylist[i] > self.last_thrusters[i]:
-                        dutylist[i] = self.last_thrusters[i] + self.max_delta
-                    else:
-                        dutylist[i] = self.last_thrusters[i]- self.max_delta
-
-                self.last_thrusters[i] = dutylist[i]
-                #self.pca.channel_set_duty(i, dutylist[i])
+        
+        # Decompose the vectors into thruster values
+        # linearX references moving along X-axis, or forward
+        # angularZ referneces rotation around vertical axis, or Z-axis.
+        # For more reference directions, see https://www.canva.com/design/DAFyPqmH8LY/2oMLLaP8HHGi2e07Ms8fug/view
     
-            #self.log.info(str(dutylist))
-            
+        scale_value = 0.5 * (2 ** -0.5)
+
+        msglist = [(linearX - linearY - angularZ) * scale_value, 
+                   (linearX + linearY + angularZ) * scale_value,
+                   (-linearX - linearY + angularZ) * scale_value,
+                   (-linearX + linearY - angularZ) * scale_value,
+                   -linearZ - angularX,
+                   -linearZ + angularX]
+
+        # function to limit a value between -1 and 1
+        # min(value, 1) takes the returns lesser of the two values. So if value is greater than 1, it returns 1.
+        def limit_value(value):
+            return max(-0.95, min(value, 0.95))
+
+        # Use map() to apply the limit_value function to each element of msglist
+        msglist = list(map(limit_value, msglist))
+
+        dutylist = [ round(0.15 - msglist[i] / 25, 5) for i in range(6) ]
+        for i in range(6):
+            if abs(dutylist[i] - self.last_thrusters[i]) > self.max_delta:
+                if dutylist[i] > self.last_thrusters[i]:
+                    dutylist[i] = self.last_thrusters[i] + self.max_delta
+                else:
+                    dutylist[i] = self.last_thrusters[i]- self.max_delta
+
+            self.last_thrusters[i] = dutylist[i]
+            self.pca.channel_set_duty(i, dutylist[i])
+
+        self.log.info(str(dutylist))
+        
 # Runs the node
 def main(args=None):
     rclpy.init(args=args)
