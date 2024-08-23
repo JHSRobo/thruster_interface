@@ -56,12 +56,21 @@ class Thrusters(Node):
         self.error = 0.0
 
         self.yaw_target = 0
+        
+        # Variable to create a deadzone for angularZ for yaw_lock
+        self.deadzone = 8
+        deadzone_bounds = FloatingPointRange()
+        deadzone_bounds.from_value = 2
+        deadzone_bounds.to_value = 45
+        deadzone_bounds.step = 1
+        deadzone_descriptor = ParameterDescriptor(floating_nt_range = [deadzone_bounds])
 
         # Declare parameters
         self.declare_parameter('yaw_control', False)
         self.declare_parameter('yaw_p', self.yp, slider_descriptor)
         self.declare_parameter('yaw_i', self.yi, slider_descriptor)
         self.declare_parameter('yaw_d', self.yd, slider_descriptor)
+        self.declare_parameter('yaw_deadzone', self.deadzone, deadzone_descriptor)
 
         self.add_on_set_parameters_callback(self.parameters_callback)
 
@@ -82,6 +91,7 @@ class Thrusters(Node):
             if param.name == 'yaw_p': self.yp = param.value
             if param.name == 'yaw_i': self.yi = param.value
             if param.name == 'yaw_d': self.yd = param.value
+            if param.name == 'yaw_deadzone' : self.yaw_deadzone = param.value
             if param.name == 'yaw_control': self.yaw_control_enabled = param.value
 
         self.yaw_pid.tunings = (self.yp, self.yi, self.yd)
@@ -119,8 +129,7 @@ class Thrusters(Node):
 
     # Runs whenever /cmd_vel topic recieves a new twist msg
     # Twist msg reference: http://docs.ros.org/en/noetic/api/geometry_msgs/html/msg/Twist.html
-    def thruster_callback(self, msg):
-            
+    def thruster_callback(self, msg):    
         # Implement separate logic for yaw control
         if self.yaw_control_enabled:
 
@@ -144,7 +153,8 @@ class Thrusters(Node):
         angularX = msg.angular.x
 
         # Use yaw-lock pid value unless pilot is moving on the axis
-        if abs(msg.angular.z) > 8:
+        # Here, we only use the joystick angularZ value if the pilot has rotated at least self.deadzone degrees
+        if self.deadzone < msg.angular.z < (360 - self.deadzone):
             angularZ = msg.angular.z / sqrt(2) # Division because thrusters do not have to vector against each other for angular motion
 
         
