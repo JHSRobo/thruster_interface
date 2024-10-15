@@ -39,6 +39,7 @@ class Thrusters(Node):
         # Creates the subscriber
         self.thruster_sub = self.create_subscription(Twist, 'cmd_vel', self.thruster_callback, 10)
         self.orientation_sub = self.create_subscription(Vector3, 'orientation_sensor', self.orientation_callback, 10)
+        self.depth_sub = self.create_subscription(Vector3, 'depth_sensor', self.depth_callback, 10)
 
         # Define slider parameters
         slider_bounds = FloatingPointRange()
@@ -47,16 +48,16 @@ class Thrusters(Node):
         slider_bounds.step = 0.0005
         slider_descriptor = ParameterDescriptor(floating_point_range = [slider_bounds])
 
-        # Define PID Values
+        # Define YAW Values
         self.yaw_control_enabled = False
         self.yaw_effort_value = 0
         self.yp = 0.0055
         self.yi = 0.0
         self.yd = 0.0
-        self.error = 0.0
+        self.yaw_error = 0.0
 
         self.yaw_target = 0
-        
+
         # Variable to create a deadzone for angularZ for yaw_lock
         self.deadzone = 8
         deadzone_bounds = FloatingPointRange()
@@ -65,6 +66,16 @@ class Thrusters(Node):
         deadzone_bounds.step = 1
         deadzone_descriptor = ParameterDescriptor(floating_nt_range = [deadzone_bounds])
 
+        # Define Depth Hold Values
+        self.depth_hold_enabled = False
+        self.depth_effort_value = 0
+        self.depth_p = 0.055
+        self.depth_i = 0.0 
+        self.depth_d = 0.0 
+        self.depth_error = 0.0
+
+        self.depth_target = 0
+        
         # Declare parameters
         self.declare_parameter('yaw_control', False)
         self.declare_parameter('yaw_p', self.yp, slider_descriptor)
@@ -72,6 +83,11 @@ class Thrusters(Node):
         self.declare_parameter('yaw_d', self.yd, slider_descriptor)
         self.declare_parameter('yaw_deadzone', self.deadzone, deadzone_descriptor)
 
+        self.declare_parameter('depth_hold', False)
+        self.declare_parameter('depth_p', self.depth_p, slider_descriptor)
+        self.declare_parameter('depth_i', self.depth_i, slider_descriptor)
+        self.declare_parameter('depth_d', self.depth_d, slider_descriptor)
+        
         self.add_on_set_parameters_callback(self.parameters_callback)
 
 
@@ -81,10 +97,14 @@ class Thrusters(Node):
         # Max delta of thrusters
         self.max_delta = 0.004
 
-        # Set up PID control stuff
+        # Sets up PIDs for yaw and depth as well as limits on those PIDs so that they don't overwhelm the thrusters
         self.yaw_pid = PID(self.yp, self.yi, self.yd, setpoint = 0)
+        self.yaw_pid.output_limits = (-1.0, 1.0) 
+
+        self.depth_pid = PID(self.depth_p, self.depth_i, self.depth_d, setpoint=0)
+        self.depth_pid.output_limits = (-1.0, 1.0)
+
         #self.yaw_pid.sample_time = 0.00714 # Time between value recalculations (2x cmd_vel hz)
-        self.yaw_pid.output_limits = (-1.0, 1.0) # Restrict output between -1 and 1
 
     def parameters_callback(self, params):
         for param in params:
@@ -94,44 +114,70 @@ class Thrusters(Node):
             if param.name == 'yaw_deadzone' : self.yaw_deadzone = param.value
             if param.name == 'yaw_control': self.yaw_control_enabled = param.value
 
+            if param.name == 'depth_p': self.depth_p = param.value
+            if param.name == 'depth_i': self.depth_i = param.value
+            if param.name == 'depth_d': self.depth_d = param.value
+            if param.name == 'depth_hold': self.depth_hold_enabled = param.value
+
+
         self.yaw_pid.tunings = (self.yp, self.yi, self.yd)
+        self.depth_pid_tunings = (self.depth_p, self.depth_i, self.depth_d)
 
         if self.yaw_control_enabled:
             self.yaw_pid.set_auto_mode(True, last_output = self.yaw)
         if not self.yaw_control_enabled:
             self.yaw_pid.auto_mode = False
 
+        if self.depth_hold_enabled:
+            self.depth_pid.set_auto_mode(True, last_output = self.depth)
+        if not self.depth_hold_enabled:
+            self.depth_pid.auto_mode = False
+
         return SetParametersResult(successful=True)
 
     def orientation_callback(self, msg):
         self.yaw = msg.x
 
-        # Calculate a new PID effort value based on the newly updated orientation
+        # Calculate a new PID error value based on the newly updated orientation
         if self.yaw_control_enabled: 
-            self.error = self.calculate_error(self.yaw)
+            self.yaw_error = self.calculate_orientation_error(self.yaw)
         else:
             self.yaw_target = self.yaw
 
-    # We provide this function to the pid controller so that it understands that 360 wraps around to 0
-    def angle_wrap(self, angle):
-        if angle > 180:
-            return angle - 360
-        elif angle < -180:
-            return angle + 360
-        return angle
+    def depth_callback(self, msg):
+        self.depth = msg.data
+        
+        # Calculate a new PID error value based on the new depth
+        if self.depth_hold_enabled:
+            self.depth_error = self.depth_target - self.depth
+        else:
+            self.depth_target = self.depth
+
 
     # Takes in actual angle of the ROV and calculates the error relative to setpoint
-    def calculate_error(self, angle):
+    def calculate_orientation_error(self, angle):
         error = self.yaw_target - angle
-        error = self.angle_wrap(error)
+        # Forces angle between -180 and 180 
+        if error > 180:
+            return error - 360
+        elif error < -180:
+            return error + 360
         return error
-
 
     # Runs whenever /cmd_vel topic recieves a new twist msg
     # Twist msg reference: http://docs.ros.org/en/noetic/api/geometry_msgs/html/msg/Twist.html
     def thruster_callback(self, msg):    
+
+        linearX = msg.linear.x
+        linearY = msg.linear.y 
+        linearZ = msg.linear.z
+        angularX = msg.angular.x
+        angularZ = msg.angular.z / sqrt(2) # Division because thrusters do not have to vector against each other for angular motion
+
         # Implement separate logic for yaw control
-        if self.yaw_control_enabled:
+        # Use yaw-lock pid value unless pilot is moving on the axis
+        # Here, we only use the joystick angularZ value if the pilot has rotated at least self.deadzone degrees
+        if self.yaw_control_enabled and not (self.deadzone < msg.angular.z < (360 - self.deadzone)):
 
             # This callback runs about 75x / second.
             # We want top speed to rotate the ROV 360 degrees in 1 second.
@@ -139,23 +185,30 @@ class Thrusters(Node):
             self.yaw_target += (msg.angular.z * 360 / 75)
             self.yaw_target = self.yaw_target % 360
             self.yaw_pid.setpoint = 0 #self.yaw_target
-            self.yaw_effort_value = self.yaw_pid(self.error)
-            self.log.info("effort: {} \
-                    target: {} \
-                    error: {}".format(self.yaw_effort_value, self.yaw_target, self.error))
+            self.yaw_effort_value = self.yaw_pid(self.yaw_error)
+            self.log.info("yaw_effort: {} \
+                    yaw_target: {} \
+                    yaw_error: {}".format(self.yaw_effort_value, self.yaw_target, self.yaw_error))
 
             angularZ = self.yaw_effort_value
 
-        
-        linearX = msg.linear.x
-        linearY = msg.linear.y
-        linearZ = msg.linear.z
-        angularX = msg.angular.x
 
-        # Use yaw-lock pid value unless pilot is moving on the axis
-        # Here, we only use the joystick angularZ value if the pilot has rotated at least self.deadzone degrees
-        if self.deadzone < msg.angular.z < (360 - self.deadzone):
-            angularZ = msg.angular.z / sqrt(2) # Division because thrusters do not have to vector against each other for angular motion
+
+        # Depth Hold Logic 
+        if self.depth_hold_enabled and (abs(msg.linear.z) < 0.02):
+
+            self.depth_pid.setpoint = 0
+            self.depth_effort_value = self.depth_pid(self.depth_error)
+            self.log.info("depth_effort: {} \
+                    depth_target: {} \
+                    depth_error: {}".format(self.depth_effort_value, self.depth_target, self.depth_error))
+
+            linearZ = self.depth_effort_value
+        else:
+            linearZ = msg.linear.z
+
+
+         
 
         
         # Decompose the vectors into thruster values
