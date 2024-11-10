@@ -59,7 +59,7 @@ class Thrusters(Node):
         self.yaw_target = 0
 
         # Variable to create a deadzone for angularZ for yaw_lock
-        self.deadzone = 8
+        self.deadzone = 0.05
         deadzone_bounds = FloatingPointRange()
         deadzone_bounds.from_value = 2
         deadzone_bounds.to_value = 45
@@ -69,7 +69,7 @@ class Thrusters(Node):
         # Define Depth Hold Values
         self.depth_hold_enabled = False
         self.depth_effort_value = 0
-        self.depth_p = 0.055
+        self.depth_p = 0.0055
         self.depth_i = 0.0 
         self.depth_d = 0.0 
         self.depth_error = 0.0
@@ -170,14 +170,12 @@ class Thrusters(Node):
 
         linearX = msg.linear.x
         linearY = msg.linear.y 
-        linearZ = msg.linear.z
         angularX = msg.angular.x
-        angularZ = msg.angular.z / sqrt(2) # Division because thrusters do not have to vector against each other for angular motion
 
         # Implement separate logic for yaw control
         # Use yaw-lock pid value unless pilot is moving on the axis
         # Here, we only use the joystick angularZ value if the pilot has rotated at least self.deadzone degrees
-        if self.yaw_control_enabled and not (self.deadzone < msg.angular.z < (360 - self.deadzone)):
+        if self.yaw_control_enabled and not (abs(msg.angular.z) < self.deadzone):
 
             # This callback runs about 75x / second.
             # We want top speed to rotate the ROV 360 degrees in 1 second.
@@ -191,11 +189,13 @@ class Thrusters(Node):
                     yaw_error: {}".format(self.yaw_effort_value, self.yaw_target, self.yaw_error))
 
             angularZ = self.yaw_effort_value
+        else:
+            angularZ = self.angular.z
 
 
 
         # Depth Hold Logic 
-        if self.depth_hold_enabled and (abs(msg.linear.z) < 0.02):
+        if self.depth_hold_enabled and not (abs(msg.linear.z) < 0.02):
 
             self.depth_pid.setpoint = 0
             self.depth_effort_value = self.depth_pid(self.depth_error)
