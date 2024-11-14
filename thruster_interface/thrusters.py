@@ -58,12 +58,12 @@ class Thrusters(Node):
 
         self.yaw_target = 0
 
-        # Variable to create a deadzone for angularZ for yaw_lock
-        self.deadzone = 0.05
+        # Variable to create a deadzone for angularZ for yaw lock
+        self.yaw_deadzone = 0.05
         deadzone_bounds = FloatingPointRange()
-        deadzone_bounds.from_value = 2
-        deadzone_bounds.to_value = 45
-        deadzone_bounds.step = 1
+        deadzone_bounds.from_value = 0
+        deadzone_bounds.to_value = 1
+        deadzone_bounds.step = 0.01
         deadzone_descriptor = ParameterDescriptor(floating_nt_range = [deadzone_bounds])
 
         # Define Depth Hold Values
@@ -76,17 +76,27 @@ class Thrusters(Node):
 
         self.depth_target = 0
         
+        # Variable to create a deadzone for linearZ for depth hold
+        self.depth_deadzone = 0.02
+        deadzone_bounds = FloatingPointRange()
+        deadzone_bounds.from_value = 0
+        deadzone_bounds.to_value = 1
+        deadzone_bounds.step = 0.01
+        deadzone_descriptor = ParameterDescriptor(floating_nt_range = [deadzone_bounds])
+
+
         # Declare parameters
         self.declare_parameter('yaw_control', False)
         self.declare_parameter('yaw_p', self.yp, slider_descriptor)
         self.declare_parameter('yaw_i', self.yi, slider_descriptor)
         self.declare_parameter('yaw_d', self.yd, slider_descriptor)
-        self.declare_parameter('yaw_deadzone', self.deadzone, deadzone_descriptor)
+        self.declare_parameter('yaw_deadzone', self.yaw_deadzone, deadzone_descriptor)
 
         self.declare_parameter('depth_hold', False)
         self.declare_parameter('depth_p', self.depth_p, slider_descriptor)
         self.declare_parameter('depth_i', self.depth_i, slider_descriptor)
         self.declare_parameter('depth_d', self.depth_d, slider_descriptor)
+        self.declare_parameter('depth_deadzone', self.depth_deadzone, deadzone_descriptor)
         
         self.add_on_set_parameters_callback(self.parameters_callback)
 
@@ -117,6 +127,7 @@ class Thrusters(Node):
             if param.name == 'depth_p': self.depth_p = param.value
             if param.name == 'depth_i': self.depth_i = param.value
             if param.name == 'depth_d': self.depth_d = param.value
+            if param.name == 'depth_deadzone': self.depth_deadzone = param.value
             if param.name == 'depth_hold': self.depth_hold_enabled = param.value
 
 
@@ -173,8 +184,8 @@ class Thrusters(Node):
 
         # Implement separate logic for yaw control
         # Use yaw-lock pid value unless pilot is moving on the axis
-        # Here, we only use the joystick angularZ value if the pilot has rotated at least self.deadzone degrees
-        if self.yaw_control_enabled and (abs(msg.angular.z) < self.deadzone):
+        # Here, we only use the joystick angularZ value if the pilot has rotated at least self.yaw_deadzone degrees
+        if self.yaw_control_enabled and (abs(msg.angular.z) < self.yaw_deadzone):
 
             # This callback runs about 75x / second.
             # We want top speed to rotate the ROV 360 degrees in 1 second.
@@ -194,7 +205,7 @@ class Thrusters(Node):
 
 
         # Depth Hold Logic 
-        if self.depth_hold_enabled and not (abs(msg.linear.z) < 0.02):
+        if self.depth_hold_enabled and abs(msg.linear.z) < self.depth_deadzone:
 
             self.depth_pid.setpoint = 0
             self.depth_effort_value = self.depth_pid(self.depth_error)
