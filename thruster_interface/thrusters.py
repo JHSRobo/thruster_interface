@@ -144,16 +144,6 @@ class Thrusters(Node):
         else:
             self.yaw_target = self.yaw
 
-    def depth_callback(self, msg):
-        self.depth = msg.data
-        
-        # Calculate a new PID error value based on the new depth
-        if self.depth_hold_enabled:
-            self.depth_error = self.depth_target - self.depth
-        else:
-            self.depth_target = self.depth
-
-
     # Takes in actual angle of the ROV and calculates the error relative to setpoint
     def calculate_orientation_error(self, angle):
         error = self.yaw_target - angle
@@ -163,6 +153,15 @@ class Thrusters(Node):
         elif error < -180:
             return error + 360
         return error
+
+    def depth_callback(self, msg):
+        self.depth = msg.data
+        
+        # Calculate a new PID error value based on the new depth
+        if self.depth_hold_enabled:
+            self.depth_error = self.depth_target - self.depth
+        else:
+            self.depth_target = self.depth
 
     # Runs whenever /cmd_vel topic recieves a new twist msg
     # Twist msg reference: http://docs.ros.org/en/noetic/api/geometry_msgs/html/msg/Twist.html
@@ -175,7 +174,7 @@ class Thrusters(Node):
         # Implement separate logic for yaw control
         # Use yaw-lock pid value unless pilot is moving on the axis
         # Here, we only use the joystick angularZ value if the pilot has rotated at least self.deadzone degrees
-        if self.yaw_control_enabled and not (abs(msg.angular.z) < self.deadzone):
+        if self.yaw_control_enabled and (abs(msg.angular.z) < self.deadzone):
 
             # This callback runs about 75x / second.
             # We want top speed to rotate the ROV 360 degrees in 1 second.
