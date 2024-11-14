@@ -44,8 +44,8 @@ class Thrusters(Node):
         # Define slider parameters
         slider_bounds = FloatingPointRange()
         slider_bounds.from_value = 0.0
-        slider_bounds.to_value = 0.02
-        slider_bounds.step = 0.0005
+        slider_bounds.to_value = 1.0
+        slider_bounds.step = 0.025
         slider_descriptor = ParameterDescriptor(floating_point_range = [slider_bounds])
 
         # Define YAW Values
@@ -69,7 +69,7 @@ class Thrusters(Node):
         # Define Depth Hold Values
         self.depth_hold_enabled = False
         self.depth_effort_value = 0
-        self.depth_p = 0.0055
+        self.depth_p = 0.275
         self.depth_i = 0.0 
         self.depth_d = 0.0 
         self.depth_error = 0.0
@@ -77,7 +77,7 @@ class Thrusters(Node):
         self.depth_target = 0
         
         # Variable to create a deadzone for linearZ for depth hold
-        self.depth_deadzone = 0.02
+        self.depth_deadzone = 0.1
         deadzone_bounds = FloatingPointRange()
         deadzone_bounds.from_value = 0
         deadzone_bounds.to_value = 1
@@ -205,7 +205,7 @@ class Thrusters(Node):
 
 
         # Depth Hold Logic 
-        if self.depth_hold_enabled and abs(msg.linear.z) < self.depth_deadzone:
+        if self.depth_hold_enabled and (abs(msg.linear.z) < self.depth_deadzone):
 
             self.depth_pid.setpoint = 0
             self.depth_effort_value = self.depth_pid(self.depth_error)
