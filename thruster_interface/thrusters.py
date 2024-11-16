@@ -51,7 +51,7 @@ class Thrusters(Node):
         # Define YAW Values
         self.yaw_control_enabled = False
         self.yaw_effort_value = 0
-        self.yp = 0.0055
+        self.yp = 0.275
         self.yi = 0.0
         self.yd = 0.0
         self.yaw_error = 0.0
@@ -108,10 +108,10 @@ class Thrusters(Node):
         self.max_delta = 0.004
 
         # Sets up PIDs for yaw and depth as well as limits on those PIDs so that they don't overwhelm the thrusters
-        self.yaw_pid = PID(self.yp, self.yi, self.yd, setpoint = 0)
+        self.yaw_pid = PID(self.yp*0.02, self.yi*0.02, self.yd*0.02, setpoint = 0)
         self.yaw_pid.output_limits = (-1.0, 1.0) 
 
-        self.depth_pid = PID(self.depth_p, self.depth_i, self.depth_d, setpoint=0)
+        self.depth_pid = PID(self.depth_p*0.02, self.depth_i*0.02, self.depth_d*0.02, setpoint=0)
         self.depth_pid.output_limits = (-1.0, 1.0)
 
         #self.yaw_pid.sample_time = 0.00714 # Time between value recalculations (2x cmd_vel hz)
@@ -131,8 +131,8 @@ class Thrusters(Node):
             if param.name == 'depth_hold': self.depth_hold_enabled = param.value
 
 
-        self.yaw_pid.tunings = (self.yp, self.yi, self.yd)
-        self.depth_pid_tunings = (self.depth_p, self.depth_i, self.depth_d)
+        self.yaw_pid.tunings = (self.yp*0.02, self.yi*0.02, self.yd*0.02)
+        self.depth_pid_tunings = (self.depth_p*0.02, self.depth_i*0.02, self.depth_d*0.02)
 
         if self.yaw_control_enabled:
             self.yaw_pid.set_auto_mode(True, last_output = self.yaw)
@@ -190,9 +190,9 @@ class Thrusters(Node):
             # This callback runs about 75x / second.
             # We want top speed to rotate the ROV 360 degrees in 1 second.
 
-            self.yaw_target += (msg.angular.z * 360 / 75)
-            self.yaw_target = self.yaw_target % 360
-            self.yaw_pid.setpoint = 0 #self.yaw_target
+            # self.yaw_target += (msg.angular.z * 360 / 75)
+            # self.yaw_target = self.yaw_target % 360
+            self.yaw_pid.setpoint = 0 
             self.yaw_effort_value = self.yaw_pid(self.yaw_error)
             self.log.info("yaw_effort: {} \
                     yaw_target: {} \
