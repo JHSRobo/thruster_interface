@@ -2,6 +2,7 @@
 
 import rclpy
 from rclpy.node import Node
+from std_msgs.msg import Bool
 from geometry_msgs.msg import Twist, Vector3
 import time
 from core_lib import pca9685
@@ -38,8 +39,14 @@ class Thrusters(Node):
 
         # Creates the subscriber
         self.thruster_sub = self.create_subscription(Twist, 'cmd_vel', self.thruster_callback, 10)
+        self.thruster_statu_sub = self.create_subscription(Bool, 'thruster_status', self.thruster_status_callback, 10)
         self.orientation_sub = self.create_subscription(Vector3, 'orientation_sensor', self.orientation_callback, 10)
         self.depth_sub = self.create_subscription(Vector3, 'depth_sensor', self.depth_callback, 10)
+
+        self.thrusters_enabled = False
+
+        # Variable to control the amount of force for the PID
+        self.pid_scaler = 0.1
 
         # Define slider parameters
         slider_bounds = FloatingPointRange()
@@ -49,8 +56,10 @@ class Thrusters(Node):
         slider_descriptor = ParameterDescriptor(floating_point_range = [slider_bounds])
 
         # Define YAW Values
-        self.yaw_control_enabled = False
+        self.yaw = 0
         self.yaw_effort_value = 0
+
+        self.yaw_control_enabled = False
         self.yp = 0.275
         self.yi = 0.0
         self.yd = 0.0
@@ -108,10 +117,10 @@ class Thrusters(Node):
         self.max_delta = 0.004
 
         # Sets up PIDs for yaw and depth as well as limits on those PIDs so that they don't overwhelm the thrusters
-        self.yaw_pid = PID(self.yp*0.02, self.yi*0.02, self.yd*0.02, setpoint = 0)
+        self.yaw_pid = PID(self.yp*self.pid_scaler, self.yi*self.pid_scaler, self.yd*self.pid_scaler, setpoint = 0)
         self.yaw_pid.output_limits = (-1.0, 1.0) 
 
-        self.depth_pid = PID(self.depth_p*0.02, self.depth_i*0.02, self.depth_d*0.02, setpoint=0)
+        self.depth_pid = PID(self.depth_p*self.pid_scaler, self.depth_i*self.pid_scaler, self.depth_d*self.pid_scaler, setpoint=0)
         self.depth_pid.output_limits = (-1.0, 1.0)
 
         #self.yaw_pid.sample_time = 0.00714 # Time between value recalculations (2x cmd_vel hz)
@@ -131,8 +140,8 @@ class Thrusters(Node):
             if param.name == 'depth_hold': self.depth_hold_enabled = param.value
 
 
-        self.yaw_pid.tunings = (self.yp*0.02, self.yi*0.02, self.yd*0.02)
-        self.depth_pid_tunings = (self.depth_p*0.02, self.depth_i*0.02, self.depth_d*0.02)
+        self.yaw_pid.tunings = (self.yp*self.pid_scaler, self.yi*self.pid_scaler, self.yd*self.pid_scaler)
+        self.depth_pid_tunings = (self.depth_p*self.pid_scaler, self.depth_i*self.pid_scaler, self.depth_d*self.pid_scaler)
 
         if self.yaw_control_enabled:
             self.yaw_pid.set_auto_mode(True, last_output = self.yaw)
@@ -148,12 +157,7 @@ class Thrusters(Node):
 
     def orientation_callback(self, msg):
         self.yaw = msg.x
-
-        # Calculate a new PID error value based on the newly updated orientation
-        if self.yaw_control_enabled: 
-            self.yaw_error = self.calculate_orientation_error(self.yaw)
-        else:
-            self.yaw_target = self.yaw
+        self.yaw_error = self.calculate_orientation_error(self.yaw)
 
     # Takes in actual angle of the ROV and calculates the error relative to setpoint
     def calculate_orientation_error(self, angle):
@@ -174,6 +178,10 @@ class Thrusters(Node):
         else:
             self.depth_target = self.depth
 
+
+    def thruster_status_callback(self, msg):
+        self.thrusters_enabled = msg.data
+
     # Runs whenever /cmd_vel topic recieves a new twist msg
     # Twist msg reference: http://docs.ros.org/en/noetic/api/geometry_msgs/html/msg/Twist.html
     def thruster_callback(self, msg):    
@@ -186,7 +194,6 @@ class Thrusters(Node):
         # Use yaw-lock pid value unless pilot is moving on the axis
         # Here, we only use the joystick angularZ value if the pilot has rotated at least self.yaw_deadzone degrees
         if self.yaw_control_enabled and (abs(msg.angular.z) < self.yaw_deadzone):
-
             # This callback runs about 75x / second.
             # We want top speed to rotate the ROV 360 degrees in 1 second.
 
@@ -194,13 +201,13 @@ class Thrusters(Node):
             # self.yaw_target = self.yaw_target % 360
             self.yaw_pid.setpoint = 0 
             self.yaw_effort_value = self.yaw_pid(self.yaw_error)
-            self.log.info("yaw_effort: {} \
-                    yaw_target: {} \
-                    yaw_error: {}".format(self.yaw_effort_value, self.yaw_target, self.yaw_error))
+            self.log.info(f"yaw_effort: {self.yaw_effort_value} \n yaw_target: {self.yaw_target} \n yaw_error: {self.yaw_error}")
 
             angularZ = self.yaw_effort_value
         else:
-            angularZ = self.angular.z
+            self.yaw_target = self.yaw
+            self.yaw_error = self.calculate_orientation_error(self.yaw)
+            angularZ = msg.angular.z
 
 
 
@@ -242,19 +249,23 @@ class Thrusters(Node):
 
         # Use map() to apply the limit_value function to each element of msglist
         msglist = list(map(limit_value, msglist))
+    
+        if self.thrusters_enabled:
+            dutylist = [ round(0.15 - msglist[i] / 25, 5) for i in range(6) ]
+            for i in range(6):
+                if abs(dutylist[i] - self.last_thrusters[i]) > self.max_delta:
+                    if dutylist[i] > self.last_thrusters[i]:
+                        dutylist[i] = self.last_thrusters[i] + self.max_delta
+                    else:
+                        dutylist[i] = self.last_thrusters[i]- self.max_delta
 
-        dutylist = [ round(0.15 - msglist[i] / 25, 5) for i in range(6) ]
-        for i in range(6):
-            if abs(dutylist[i] - self.last_thrusters[i]) > self.max_delta:
-                if dutylist[i] > self.last_thrusters[i]:
-                    dutylist[i] = self.last_thrusters[i] + self.max_delta
-                else:
-                    dutylist[i] = self.last_thrusters[i]- self.max_delta
+                self.last_thrusters[i] = dutylist[i]
+                self.pca.channel_set_duty(i, dutylist[i])
+        else:
+            for i in range(6):
+                self.pca.channel_set_duty(i, 0)
 
-            self.last_thrusters[i] = dutylist[i]
-            self.pca.channel_set_duty(i, dutylist[i])
-
-        self.log.info(str(dutylist))
+    # self.log.info(str(dutylist))
         
 # Runs the node
 def main(args=None):
