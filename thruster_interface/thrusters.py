@@ -2,6 +2,7 @@
 
 import rclpy
 from rclpy.node import Node
+from std_msgs.msg import Bool
 from geometry_msgs.msg import Twist, Vector3
 import time
 from core_lib import pca9685
@@ -38,6 +39,7 @@ class Thrusters(Node):
 
         # Creates the subscriber
         self.thruster_sub = self.create_subscription(Twist, 'cmd_vel', self.thruster_callback, 10)
+        self.thruster_status_sub = self.create_subscription(Bool, 'thruster_status', self.thruster_status_callback, 10)
         self.orientation_sub = self.create_subscription(Vector3, 'orientation_sensor', self.orientation_callback, 10)
         self.depth_sub = self.create_subscription(Vector3, 'depth_sensor', self.depth_callback, 10)
 
@@ -51,11 +53,12 @@ class Thrusters(Node):
         # Define YAW Values
         self.yaw_control_enabled = False
         self.yaw_effort_value = 0
-        self.yp = 0.0055
+        self.yp = 0.15
         self.yi = 0.0
         self.yd = 0.0
         self.yaw_error = 0.0
 
+        self.yaw = 0
         self.yaw_target = 0
 
         # Variable to create a deadzone for angularZ for yaw lock
@@ -69,15 +72,16 @@ class Thrusters(Node):
         # Define Depth Hold Values
         self.depth_hold_enabled = False
         self.depth_effort_value = 0
-        self.depth_p = 0.275
+        self.depth_p = 0.15
         self.depth_i = 0.0 
         self.depth_d = 0.0 
         self.depth_error = 0.0
 
+        self.depth = 0
         self.depth_target = 0
         
         # Variable to create a deadzone for linearZ for depth hold
-        self.depth_deadzone = 0.1
+        self.depth_deadzone = 0.05
         deadzone_bounds = FloatingPointRange()
         deadzone_bounds.from_value = 0
         deadzone_bounds.to_value = 1
@@ -100,6 +104,8 @@ class Thrusters(Node):
         
         self.add_on_set_parameters_callback(self.parameters_callback)
 
+        # Tells the thrusters whether they're allowed to spin or not
+        self.thrusters_enabled = False
 
         # Last thruster values to prevent ESC reset
         self.last_thrusters = [0.15, 0.15, 0.15, 0.15, 0.15, 0.15]
@@ -168,6 +174,8 @@ class Thrusters(Node):
 
     # Runs whenever /cmd_vel topic recieves a new twist msg
     # Twist msg reference: http://docs.ros.org/en/noetic/api/geometry_msgs/html/msg/Twist.html
+    def thruster_status_callback(self, msg):
+        self.thrusters_enabled = msg.data
     def thruster_callback(self, msg):    
 
         linearX = msg.linear.x
@@ -177,7 +185,7 @@ class Thrusters(Node):
         # Implement separate logic for yaw control
         # Use yaw-lock pid value unless pilot is moving on the axis
         # Here, we only use the joystick angularZ value if the pilot has rotated at least self.yaw_deadzone degrees
-        self.yaw_error = self.calculate_orientation_error()
+        self.yaw_error = self.calculate_orientation_error(self.yaw)
         if self.yaw_control_enabled and (abs(msg.angular.z) < self.yaw_deadzone):
 
             self.yaw_pid.setpoint = 0 #self.yaw_target
@@ -233,18 +241,19 @@ class Thrusters(Node):
         dutylist = [ round(0.15 - msglist[i] / 25, 5) for i in range(6) ]
 
         # Loop to prevent ESC reset
-        # We 
-        for i in range(6):
-            if abs(dutylist[i] - self.last_thrusters[i]) > self.max_delta:
-                if dutylist[i] > self.last_thrusters[i]:
-                    dutylist[i] = self.last_thrusters[i] + self.max_delta
-                else:
-                    dutylist[i] = self.last_thrusters[i]- self.max_delta
+        # We make sure that the thrusters' speed can only change by a given amount each interval so as to not overwhelm them.
+        if self.thrusters_enabled:
+            for i in range(6):
+                if abs(dutylist[i] - self.last_thrusters[i]) > self.max_delta:
+                    if dutylist[i] > self.last_thrusters[i]:
+                        dutylist[i] = self.last_thrusters[i] + self.max_delta
+                    else:
+                        dutylist[i] = self.last_thrusters[i] - self.max_delta
 
-            self.last_thrusters[i] = dutylist[i]
-            self.pca.channel_set_duty(i, dutylist[i])
+                self.last_thrusters[i] = dutylist[i]
+                self.pca.channel_set_duty(i, dutylist[i])
 
-        self.log.info(str(dutylist))
+            self.log.info(str(dutylist))
         
 # Runs the node
 def main(args=None):
