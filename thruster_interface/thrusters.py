@@ -8,7 +8,6 @@ import time
 from core_lib import pca9685
 from rcl_interfaces.msg import ParameterDescriptor, FloatingPointRange, SetParametersResult
 from std_srvs.srv import Trigger
-import RPi.GPIO as GPIO # Only necessary if running on RPi.
 from simple_pid import PID
 
 # Create the main class for entry
@@ -16,8 +15,6 @@ class Thrusters(Node):
     def __init__(self):
         super().__init__('thrusters')
 
-        # Supress GPIO Output
-        GPIO.setwarnings(False)
 
         # Get the logger
         self.log = self.get_logger()
