@@ -1,4 +1,5 @@
-import RPi.GPIO as GPIO
+from gpiozero import OutputDevice 
+from gpiozero.pins.lgpio import LGPIOFactory
 import smbus2
 
 # Set values to be written to registers
@@ -61,9 +62,8 @@ class PCA9685:
         self._bus = smbus2.SMBus(bus)
         self.initialize()
         # Configure output enable pin
-        GPIO.setmode(GPIO.BCM)
-        GPIO.setup(26, GPIO.OUT)
-        GPIO.setwarnings(False)
+        self.pin_factory = LGPIOFactory()
+        self.device = OutputDevice(26)
 
     def initialize(self):
 
@@ -126,12 +126,12 @@ class PCA9685:
 
     # set OE pin LOW
     def output_enable(self):
-        GPIO.output(26, GPIO.LOW)
+        self.device.off()
         return
 
     # set OE pin HIGH
     def output_disable(self):
-        GPIO.output(26, GPIO.HIGH)
+        self.device.on()
         return
 
     # get the state of the output enable pin
