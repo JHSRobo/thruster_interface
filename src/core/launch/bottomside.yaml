@@ -1,0 +1,63 @@
+launch:
+
+# Arguments for the various nodes.
+# These can be set from cmd line if necessary
+
+# Nodes for interfacing with gpio devices 
+- node:
+    pkg: "gpio_interface"
+    exec: "gpio_control"
+    name: "gpio_interface"
+
+- node:
+    pkg: "gpio_interface"
+    exec: "stepper_motor"
+    name: "stepper_motor"
+
+- node:
+    pkg: "gpio_interface"
+    exec: "mosfet"
+    name: "mosfet"
+
+- node:
+    pkg: "gpio_interface"
+    exec: "servo_controller"
+    name: "servo_controller"
+
+# Nodes for sensors
+- node:
+    pkg: "sensor_interface"
+    exec: "depth_sensor"
+    name: "depth_sensor"
+
+- node:
+    pkg: "sensor_interface"
+    exec: "imu_sensor"
+    name: "imu_sensor"
+
+- node:
+    pkg: "sensor_interface"
+    exec: "inner_temp_sensor"
+    name: "inner_temp_sensor"
+
+- node:
+    pkg: "sensor_interface"
+    exec: "outer_temp_sensor"
+    name: "outer_temp_sensor"
+
+- node:
+    pkg: "sensor_interface"
+    exec: "leak_sensor"
+    name: "leak_sensor"
+
+# Node to communicate with PCAs
+- node:
+    pkg: "thruster_interface"
+    exec: "thrusters"
+    name: "thrusters"
+
+# Node to run cameras 
+- node:
+    pkg: "camera_stream"
+    exec: "stream"
+    name: "camera_stream"

@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>core</name>
+  <version>0.0.0</version>
+  <description>Contains launch files and custom msgs, srvs, and actions for Jesuit Robotics' ROVMIND architecture.</description>
+  <maintainer email="randallj24@student.jhs.net">James Randall</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
+  <buildtool_depend>ament_cmake_core</buildtool_depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+  <depend>action_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <buildtool_depend>rosidl_default_generators</buildtool_depend>
+  <exec_depend>rosidl_default_runtime</exec_depend>
+  <exec_depend>ros2launch</exec_depend>
+  <member_of_group>rosidl_interface_packages</member_of_group>
+
+  <depend>joy</depend>
+  <depend>python3-opencv</depend>
+  <depend>python3-numpy</depend>
+  <depend>python3-smbus2-pip</depend>
+  <depend>python-rpi.gpio-pip</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

@@ -1,0 +1,4 @@
+float32 horizontal
+float32 vertical
+float32 angular
+float32 slow_factor

@@ -1,0 +1,12 @@
+src/motion_control
+src/rov_sim
+src/pilot_gui
+src/gpio_interface
+src/thruster_interface
+src/sensor_interface
+src/gripper_control
+src/img_capture
+src/shipwreck_measure
+build
+log
+install
