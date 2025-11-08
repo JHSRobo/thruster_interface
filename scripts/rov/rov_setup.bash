@@ -39,6 +39,16 @@ apt install ros-dev-tools
 apt upgrade
 apt install ros-jazzy-desktop
 
+# Install ustreamer 
+cd /home/jhsrobo
+apt install build-essential libevent-dev libjpeg-dev libbsd-dev
+cd /home/jhsrobo
+git clone --depth=1 https://github.com/pikvm/ustreamer
+cd ustreamer
+make
+cp ustreamer /usr/local/bin
+rm -rf ~/ustreamer
+
 # Give GPIO Permissions
 groupadd gpio
 usermod -aG gpio jhsrobo
