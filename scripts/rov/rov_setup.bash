@@ -22,9 +22,9 @@ echo "export PYTHONWARNINGS=ignore" >> /home/jhsrobo/.bashrc
 echo "export PIP_BREAK_SYSTEM_PACKAGES=1" >> /home/jhsrobo/.bashrc
 
 # Add Network Shortcuts
-echo "192.168.1.100 topside" >> /etc/hosts
-echo "192.168.1.110 opside" >> /etc/hosts
-echo "192.168.1.111 bottomside" >> /etc/hosts
+echo "192.168.88.100 topside" >> /etc/hosts
+echo "192.168.88.110 opside" >> /etc/hosts
+echo "192.168.88.111 bottomside" >> /etc/hosts
 
 # Disable annoying service that slows boot
 echo "[Service]" >> /etc/systemd/system/systemd-networkd-wait-online.service.d/override.conf

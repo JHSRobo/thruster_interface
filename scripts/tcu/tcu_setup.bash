@@ -23,9 +23,9 @@ echo "export PIP_BREAK_SYSTEM_PACKAGES=1" >> /home/jhsrobo/.bashrc
 
 
 # Add Network Shortcuts
-echo "192.168.1.100 master" >> /etc/hosts
-echo "192.168.1.110 opside" >> /etc/hosts
-echo "192.168.1.111 bottomside" >> /etc/hosts
+echo "192.168.88.100 master" >> /etc/hosts
+echo "192.168.88.110 opside" >> /etc/hosts
+echo "192.168.88.111 bottomside" >> /etc/hosts
 
 # Install ROS
 curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
