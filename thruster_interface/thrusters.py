@@ -71,12 +71,10 @@ class Thrusters(Node):
         # angularZ referneces rotation around vertical axis, or Z-axis.
         # For more reference directions, see https://www.canva.com/design/DAFyPqmH8LY/2oMLLaP8HHGi2e07Ms8fug/view
     
-        scale_value = 0.5 * (2 ** -0.5)
-
-        msglist = [(linearX - linearY - angularZ) * scale_value, 
-                   (linearX + linearY + angularZ) * scale_value,
-                   (-linearX - linearY + angularZ) * scale_value,
-                   (-linearX + linearY - angularZ) * scale_value,
+        msglist = [(linearX - linearY - angularZ),
+                   (linearX + linearY + angularZ),
+                   (-linearX - linearY + angularZ),
+                   (-linearX + linearY - angularZ),
                    -linearZ - angularX,
                    -linearZ + angularX]
 
