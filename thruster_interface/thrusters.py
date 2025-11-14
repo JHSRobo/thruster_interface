@@ -9,6 +9,7 @@ from core_lib import pca9685
 from rcl_interfaces.msg import ParameterDescriptor, FloatingPointRange, SetParametersResult
 from std_srvs.srv import Trigger
 from simple_pid import PID
+from core.msg import Thruster_stats
 
 # Create the main class for entry
 class Thrusters(Node):
@@ -39,6 +40,7 @@ class Thrusters(Node):
         self.thruster_status_sub = self.create_subscription(Bool, 'thruster_status', self.thruster_status_callback, 10)
         self.orientation_sub = self.create_subscription(Vector3, 'orientation_sensor', self.orientation_callback, 10)
         self.depth_sub = self.create_subscription(Vector3, 'depth_sensor', self.depth_callback, 10)
+        self.thrusteramp_sub = self.create_subscription(Thruster_stats, "thruster_stats", self.thrusteramp_callback, 10)
 
         # Define slider parameters
         slider_bounds = FloatingPointRange()
@@ -57,6 +59,8 @@ class Thrusters(Node):
 
         self.yaw = 0
         self.yaw_target = 0
+
+        self.total_amps = 0
 
         # Variable to create a deadzone for angularZ for yaw lock
         self.yaw_deadzone = 0.05
@@ -153,6 +157,11 @@ class Thrusters(Node):
         self.yaw = msg.x
         # Calculate a new PID error value based on the newly updated orientation
         self.yaw_error = self.calculate_orientation_error(self.yaw)
+    
+    def thrusteramp_callback(self, msg):
+        self.total_amps = (msg.thruster1.current + msg.thruster1.current + msg.thruster1.current
+        + msg.thruster1.current + msg.thruster1.current + msg.thruster1.current + msg.thruster1.current 
+        + msg.thruster1.current)
 
     # Takes in actual angle of the ROV and calculates the error relative to setpoint
     def calculate_orientation_error(self, angle):
@@ -235,7 +244,11 @@ class Thrusters(Node):
         # Use map() to apply the limit_value function to each element of msglist
         msglist = list(map(limit_value, msglist))
 
-        dutylist = [ round(0.15 - msglist[i] / 25, 5) for i in range(6) ]
+        factor = 1
+        if self.total_amps > 80:
+            factor = 80/self.total_amps
+
+        dutylist = [ round(0.15 - (msglist[i] / 25) * factor, 5) for i in range(6) ]
 
         # Loop to prevent ESC reset
         # We make sure that the thrusters' speed can only change by a given amount each interval so as to not overwhelm them.
