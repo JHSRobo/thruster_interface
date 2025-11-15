@@ -4,7 +4,7 @@
   <name>core</name>
   <version>0.0.0</version>
   <description>Contains launch files and custom msgs, srvs, and actions for Jesuit Robotics' ROVMIND architecture.</description>
-  <maintainer email="randallj24@student.jhs.net">James Randall</maintainer>
+  <maintainer email="jackdfrings@protonmail.com">Jack Frings</maintainer>
   <license>MIT</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>

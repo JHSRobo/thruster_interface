@@ -5,8 +5,7 @@ src/gpio_interface
 src/thruster_interface
 src/sensor_interface
 src/gripper_control
-src/img_capture
-src/shipwreck_measure
+src/camera_stream
 build
 log
 install

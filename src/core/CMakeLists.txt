@@ -41,7 +41,6 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/RectDimensions.msg"
   "msg/Channel.msg"
   "msg/Channels.msg"
-  "srv/AddCamera.srv"
   DEPENDENCIES std_msgs # Add packages that above messages depend on
 )
 
