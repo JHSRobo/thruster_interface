@@ -23,6 +23,7 @@ rm -rf thruster_interface gpio_interface sensor_interface
 git clone https://github.com/JHSRobo/thruster_interface
 git clone https://github.com/JHSRobo/gpio_interface
 git clone https://github.com/JHSRobo/sensor_interface
+git clone https://github.com/JHSRobo/camera_stream --depth=1 # For some reason, this repo takes forever to clone so I added the --depth=1 flag to speed it up. Fix later.
 
 # Update dependencies
 sudo -u jhsrobo rosdep update
