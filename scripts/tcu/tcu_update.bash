@@ -26,7 +26,7 @@ git clone https://github.com/JHSRobo/gripper_control
 
 # Update dependencies
 cd /home/jhsrobo/corews
-sudo -u jhsrobo rosdep install --from-paths src --ignore-src --rosdistro=${ROS_DISTRO} -y --os=ubuntu:noble
+sudo -u jhsrobo rosdep install --from-paths src --ignore-src --rosdistro=${ROS_DISTRO} -y --os=ubuntu:jazzy
 
 # Give jhsrobo ownership of the workspace
 sudo chown jhsrobo: -R /home/jhsrobo/corews
