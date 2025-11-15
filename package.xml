@@ -4,7 +4,7 @@
   <name>thruster_interface</name>
   <version>0.0.0</version>
   <description>TODO: Package description</description>
-  <maintainer email="randallj24@student.jhs.net">jhsrobo</maintainer>
+  <maintainer email="jackdfrings@protonmail.com">jhsrobo</maintainer>
   <license>MIT</license>
 
   <depend>rclpy</depend>
