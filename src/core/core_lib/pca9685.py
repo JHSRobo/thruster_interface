@@ -3,7 +3,7 @@ from gpiozero.pins.lgpio import LGPIOFactory
 import smbus2
 
 # Set values to be written to registers
-_address = 0x40
+_address = 0x41
 
 REG_MODE1 = 0x00
 REG_MODE2 = 0x01
