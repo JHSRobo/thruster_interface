@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 class HUD():
-    def __init__(self, resolution = (1280, 720)):
+    def __init__(self, resolution = (1920, 1080)):
         
         # Appearance Settings
         self.font = cv2.FONT_HERSHEY_DUPLEX
@@ -55,12 +55,12 @@ class HUD():
         
         # Add the header
         font_size = 0.6
-        position = (self.left_align, 5 * self.vertical_increment)
+        position = (self.left_align, 4 * self.vertical_increment)
         frame = self.add_text(frame, "Sensitivity:", position, font_size)
 
         # Add the individual sensitivies:
         font_size = 0.5
-        counter = 5.66
+        counter = 4.66
         for key in sensitivities:
             position = (self.left_align + 20, int(counter * self.vertical_increment))
             text = "{}: {}".format(key, sensitivities[key])
