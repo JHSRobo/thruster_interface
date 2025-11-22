@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+!/usr/bin/env python3
 
 import rclpy
 from rclpy.node import Node
@@ -9,7 +9,7 @@ from core_lib import pca9685
 from rcl_interfaces.msg import ParameterDescriptor, FloatingPointRange, SetParametersResult
 from std_srvs.srv import Trigger
 from simple_pid import PID
-from core.msg import Thruster_stats
+from core.msg import Thrusterstats
 
 # Create the main class for entry
 class Thrusters(Node):
@@ -40,7 +40,7 @@ class Thrusters(Node):
         self.thruster_status_sub = self.create_subscription(Bool, 'thruster_status', self.thruster_status_callback, 10)
         self.orientation_sub = self.create_subscription(Vector3, 'orientation_sensor', self.orientation_callback, 10)
         self.depth_sub = self.create_subscription(Vector3, 'depth_sensor', self.depth_callback, 10)
-        self.thrusteramp_sub = self.create_subscription(Thruster_stats, "thruster_stats", self.thrusteramp_callback, 10)
+        self.thrusteramp_sub = self.create_subscription(Thrusterstats, "thruster_stats", self.thrusteramp_callback, 10)
 
         # Define slider parameters
         slider_bounds = FloatingPointRange()
@@ -159,9 +159,9 @@ class Thrusters(Node):
         self.yaw_error = self.calculate_orientation_error(self.yaw)
     
     def thrusteramp_callback(self, msg):
-        self.total_amps = (msg.thruster1.current + msg.thruster1.current + msg.thruster1.current
-        + msg.thruster1.current + msg.thruster1.current + msg.thruster1.current + msg.thruster1.current 
-        + msg.thruster1.current)
+        self.total_amps = (msg.thruster1.current + msg.thruster2.current + msg.thruster3.current
+        + msg.thruster4.current + msg.thruster5.current + msg.thruster6.current + msg.thruster7.current 
+        + msg.thruster8.current)
 
     # Takes in actual angle of the ROV and calculates the error relative to setpoint
     def calculate_orientation_error(self, angle):
