@@ -1,8 +1,0 @@
-thruster_stat thruster1
-thruster_stat thruster2
-thruster_stat thruster3
-thruster_stat thruster4
-thruster_stat thruster5
-thruster_stat thruster6
-thruster_stat thruster7
-thruster_stat thruster8
