@@ -24,6 +24,22 @@ class HUD():
         frame = self.add_text(frame, text, position, font_size)
         return frame
 
+    def add_second_camera(self, big_frame, small_frame):
+        big_dimensions = big_frame.shape 
+        big_width = big_dimensions[1]
+
+        small_dimensions = (480, 270) # 1920x1080 scaled down by a factor of 0.25
+        small_frame = cv2.resize(small_frame, small_dimensions, interpolation=cv2.INTER_AREA)
+
+        small_dimensions = small_frame.shape
+        small_height = dimensions[0]
+        small_width = dimensions[1]
+
+        big_frame[0:small_height, big_width-small_width:big_width] = small_frame_resized
+
+        return big_frame
+
+
 
     # Overlays the current thruster status onto the frame
     def add_thruster_status(self, frame, status_bool):
