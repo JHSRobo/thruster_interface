@@ -1,8 +1,2 @@
-Thrusterstat thruster1
-Thrusterstat thruster2
-Thrusterstat thruster3
-Thrusterstat thruster4
-Thrusterstat thruster5
-Thrusterstat thruster6
-Thrusterstat thruster7
-Thrusterstat thruster8
+Thrusterstat amps
+Thrusterstat volts

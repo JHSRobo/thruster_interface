@@ -6,11 +6,6 @@ launch:
 # Nodes for interfacing with gpio devices 
 - node:
     pkg: "gpio_interface"
-    exec: "gpio_control"
-    name: "gpio_interface"
-
-- node:
-    pkg: "gpio_interface"
     exec: "stepper_motor"
     name: "stepper_motor"
 
@@ -24,31 +19,10 @@ launch:
     exec: "servo_controller"
     name: "servo_controller"
 
-# Nodes for sensors
 - node:
     pkg: "sensor_interface"
-    exec: "depth_sensor"
-    name: "depth_sensor"
-
-- node:
-    pkg: "sensor_interface"
-    exec: "imu_sensor"
-    name: "imu_sensor"
-
-- node:
-    pkg: "sensor_interface"
-    exec: "inner_temp_sensor"
-    name: "inner_temp_sensor"
-
-- node:
-    pkg: "sensor_interface"
-    exec: "outer_temp_sensor"
-    name: "outer_temp_sensor"
-
-- node:
-    pkg: "sensor_interface"
-    exec: "leak_sensor"
-    name: "leak_sensor"
+    exec: "current_restricter"
+    name: "current_restricter"
 
 # Node to communicate with PCAs
 - node:
