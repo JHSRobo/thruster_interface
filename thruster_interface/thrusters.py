@@ -66,17 +66,19 @@ class Thrusters(Node):
         angularX = msg.angular.x
         angularZ = msg.angular.z
 
+        # Scalar to limit each thruster to 1800 Hz
+        scalar = 0.75
+
         # Decompose the vectors into thruster values
         # linearX references moving along X-axis, or forward
         # angularZ referneces rotation around vertical axis, or Z-axis.
         # For more reference directions, see https://www.canva.com/design/DAFyPqmH8LY/2oMLLaP8HHGi2e07Ms8fug/view
-    
-        msglist = [(linearX - linearY - angularZ),
-                   (linearX + linearY + angularZ),
-                   (-linearX - linearY + angularZ),
-                   (-linearX + linearY - angularZ),
-                   -linearZ - angularX,
-                   -linearZ + angularX]
+        msglist = [(linearX - linearY - angularZ)  * scalar,
+                   (linearX + linearY + angularZ)  * scalar,
+                   (-linearX - linearY + angularZ) * scalar,
+                   (-linearX + linearY - angularZ) * scalar,
+                   (-linearZ - angularX) * scalar,
+                   (-linearZ + angularX) * scalar]
 
         # function to limit a value between -1 and 1
         # min(value, 1) takes the returns lesser of the two values. So if value is greater than 1, it returns 1.
