@@ -92,8 +92,8 @@ class Thrusters(Node):
 
         # Loop to prevent ESC reset
         # We make sure that the thrusters' speed can only change by a given amount each interval so as to not overwhelm them.
-        if self.thrusters_enabled:
-            for i in range(6):
+        for i in range(6):
+            if self.thrusters_enabled:
                 if abs(dutylist[i] - self.last_thrusters[i]) > self.max_delta:
                     if dutylist[i] > self.last_thrusters[i]:
                         dutylist[i] = self.last_thrusters[i] + self.max_delta
@@ -102,6 +102,9 @@ class Thrusters(Node):
 
                 self.last_thrusters[i] = dutylist[i]
                 self.pca.channel_set_duty(i, dutylist[i])
+            else:
+                self.last_thrusters[i] = 0.15 
+                self.pca.channel_set_duty(i, 0.15)
 
             self.log.info(str(dutylist))
         
@@ -117,4 +120,4 @@ def main(args=None):
     rclpy.shutdown
 
 if __name__ == '__main__':
-    main()
+   main()
