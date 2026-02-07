@@ -48,7 +48,7 @@ class Thrusters(Node):
         self.thrusters_enabled = False
 
         # Last thruster values to prevent ESC reset
-        self.last_thrusters = [0.15, 0.15, 0.15, 0.15, 0.15, 0.15]
+        self.last_thrusters = [0.15] * 8
 
         # Max delta of thrusters
         self.max_delta = 0.004
@@ -64,6 +64,7 @@ class Thrusters(Node):
         linearY = msg.linear.y 
         linearZ = msg.linear.z
         angularX = msg.angular.x
+        angularY = msg.angular.y
         angularZ = msg.angular.z
 
         # Scalar to limit each thruster to 1800 Hz
@@ -72,34 +73,41 @@ class Thrusters(Node):
         # Decompose the vectors into thruster values
         # linearX references moving along X-axis, or forward
         # angularZ referneces rotation around vertical axis, or Z-axis.
-        # For more reference directions, see https://www.canva.com/design/DAFyPqmH8LY/2oMLLaP8HHGi2e07Ms8fug/view
-        msglist = [(linearX - linearY - angularZ)  * scalar,
-                   (linearX + linearY + angularZ)  * scalar,
-                   (-linearX - linearY + angularZ) * scalar,
-                   (-linearX + linearY - angularZ) * scalar,
-                   (-linearZ - angularX) * scalar,
-                   (-linearZ + angularX) * scalar]
 
-        # function to limit a value between -1 and 1
-        # min(value, 1) takes the returns lesser of the two values. So if value is greater than 1, it returns 1.
+        # For more reference directions, see https://www.canva.com/design/DAFyPqmH8LY/2oMLLaP8HHGi2e07Ms8fug/view
+        # Note: Need to update graphic. Note that pitching forward is being considered positive (ie tilting the MEH down)
+
+        # 12 (HH)
+        # 56 (VV)
+        # 78 (VV)
+        # 34 (HH)
+
+        msglist = [(linearX - linearY - angularZ)  * scalar,     # Front-Left Horizontal
+                   (linearX + linearY + angularZ)  * scalar,     # Front-Right Horizontal
+                   (-linearX - linearY + angularZ) * scalar,     # Back-Left Horizontal
+                   (-linearX + linearY - angularZ) * scalar,     # Back-Right Horizontal
+                   (-linearZ + angularY - angularX) * scalar,    # Front-Left Vertical
+                   (-linearZ + angularY + angularX) * scalar,    # Front-Right Vertical
+                   (-linearZ - angularY - angularX) * scalar,    # Back-Left Vertical
+                   (-linearZ - angularY + angularX) * scalar]    # Back-Right Vertical
+
+        # function to limit a value between -0.95 and 0.95
         def limit_value(value):
             return max(-0.95, min(value, 0.95))
 
-        # Use map() to apply the limit_value function to each element of msglist
         msglist = list(map(limit_value, msglist))
 
-        dutylist = [ round(0.15 - msglist[i] / 25, 5) for i in range(6) ]
+        dutylist = [ round(0.15 - msglist[i] / 25, 5) for i in range(8) ]
 
         # Loop to prevent ESC reset
         # We make sure that the thrusters' speed can only change by a given amount each interval so as to not overwhelm them.
         if self.thrusters_enabled:
-            for i in range(6):
+            for i in range(8):
                 if abs(dutylist[i] - self.last_thrusters[i]) > self.max_delta:
                     if dutylist[i] > self.last_thrusters[i]:
                         dutylist[i] = self.last_thrusters[i] + self.max_delta
                     else:
                         dutylist[i] = self.last_thrusters[i] - self.max_delta
-
                 self.last_thrusters[i] = dutylist[i]
                 self.pca.channel_set_duty(i, dutylist[i])
 
